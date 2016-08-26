@@ -79,7 +79,7 @@ A function is called for _each_ property. We provide this function, usually call
 
 That's basically it, but know this:
 
-- Property declarations are more sophisticated than just listing the properties. These property declarations are therefore known as _query_expressions_.
+- Property declarations are more sophisticated than just listing the properties. These property declarations are therefore known as _query expressions_.
 - Property values are cached in a local atom called the app-state, but might also exist on remote servers too.
 
 This is basically Om Next.
