@@ -1,8 +1,6 @@
 #How to build an Om Next Remote
 
-[by Malcolm Sparks](https://juxt.pro/people/malcolmsparks.html)
-
-##Notes from a training course
+Notes from a training course [by Malcolm Sparks](https://juxt.pro/people/malcolmsparks.html)
 
 Last January I taught ClojureScript and Om Next to a team of JavaScript engineers in the beautiful city of Cambridge (England). For me, it was my third training course of 2016 but the first I'd ever given to a purely front-end team. It's a strong reflection of how businesses are using ClojureScript to build increasingly sophisticated front-end interfaces for their customers.
 
