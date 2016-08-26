@@ -191,10 +191,11 @@ We should always return a map containing a `:value` entry. But if the property a
 
 ##Sending the request
 
-Once ~~Jeeves~~ the Reconciler gets the hint that the property also exists on a remote it calls the send function you've provided him it.
+Once ~~Jeeves~~ the Reconciler gets the hint that the property also exists on a remote it calls the send function you've provided ~~him~~ it.
 
 Our send function uses HTTP to send the request to the remote. Here's my implementation, using the native API of modern browsers.
 
+```
 (defn send [m cb]
   (let [xhr (new js/XMLHttpRequest)]
     (.open xhr "POST" "/props")
@@ -207,6 +208,8 @@ Our send function uses HTTP to send the request to the remote. Here's my impleme
                                (.. evt -currentTarget -responseText))]
           (cb response))))
     (.send xhr (t/write (om/writer) (:remote m)))))
+```
+
 You could also use JQuery's AJAX or Google Closure XhrIo to achieve the same if you need to support older browsers.
 
 Also, I've named my endpoint /props to indicate that we're querying for properties, but feel free to change this.
@@ -217,19 +220,29 @@ We're going to use the POST method because the request needs a body (our Om Next
 
 It's common in Om Next applications to use Transit as the payload for the request payloads. That's why we set the Content-Type header on the request here:
 
+```
 (.setRequestHeader xhr "Content-Type" "application/transit+json")
-We also want the application/transit+json format back from the server, so we need set the Accept header otherwise we might get back something else.
+```
 
+We also want the `application/transit+json` format back from the server, so we need set the `Accept` header otherwise we might get back something else.
+
+```
 (.setRequestHeader xhr "Accept" "application/transit+json")
+```
+
 Remember I mentioned that the send function gets called with 2 arguments. The first is a map of queries (one for each remote), the second is a callback to ask 'The Reconciler' to merge the response into our local app-state and re-render the affected components. You can see this happen in the line
 
+```
 (cb response)
+```
+
 (I've omitted to do so but in a production application you should also remember to handle errors appropriately).
 
-Receiving the request
+##Receiving the request
 
-We'll use my HTTP library yada to help build the remote service. One of the design goals of yada is to allow you to create re-usable resources that can be parameterized, to discourage the copy-and-paste coding approach prevalent in writing APIs.
+We'll use my HTTP library **yada** to help build the remote service. One of the design goals of **yada** is to allow you to create re-usable resources that can be parameterized, to discourage the copy-and-paste coding approach prevalent in writing APIs.
 
+```
 (require '[yada.yada :refer [resource yada]])
 
 (def transit #{"application/transit+msgpack"
@@ -242,28 +255,34 @@ We'll use my HTTP library yada to help build the remote service. One of the desi
      {:consumes transit
       :produces transit
       :response (fn [ctx] (parser env (:body ctx)))}}}))
-The om-next-query-resource is a factory which creates a web resource. The web resource declares a POST method and that it talks Transit. These protocol details can be ignored by users of this resource.
+```
 
-yada an HTTP feature called 'content negotiation' which allows clients to dictate the specific Transit format they want to use. The query result will be encoded to the appropriate format, automatically.
+The `om-next-query-resource` is a factory which creates a web resource. The web resource declares a POST method and that it talks Transit. These protocol details can be ignored by users of this resource.
+
+**yada** an HTTP feature called 'content negotiation' which allows clients to dictate the specific Transit format they want to use. The query result will be encoded to the appropriate format, automatically.
 
 Focus
 
-The result of the response function will be a Clojure map, the results of running the Om Next query expression provided in the request body (:body ctx), along with an environment. In this example I've passed in the environment. You can put anything in the environment you might need to read your properties, such as database connections, URLs to other data services, etc.
+The result of the response function will be a Clojure map, the results of running the Om Next query expression provided in the request body `(:body ctx)`, along with an _environment_. In this example I've passed in the environment. You can put anything in the environment you might need to read your properties, such as database connections, URLs to other data services, etc.
 
-The parser is built in the same way as on the client. As before, we'll need read and mutate functions.
+The parser is built in the same way as on the client. As before, we'll need `read` and `mutate` functions.
 
 Here's a read function. As on the client, we use a multi-method to dispatch on the property key.
 
+```
 (defmulti readf (fn [env k params] k))
 
 (defmethod readf :customers/by-id [env k params]
   {:value (db/get-customers-by-id (:db env))})
+```
+
 Here we read from a database, using a database connection that we'll provide in the environment.
 
-We build the parser as we did on the front-end, with om/parser.
+We build the parser as we did on the front-end, with `om/parser`.
 
-Finally we put it all together, firing up an Aleph server on port 3000, and using bidi to route /props to our Om Next Remote.
+Finally we put it all together, firing up an Aleph server on port 3000, and using bidi to route `/props` to our Om Next Remote.
 
+```
 (require 'aleph.http
          'bidi.ring
          '[om.next.server :as om]
@@ -276,14 +295,17 @@ Finally we put it all together, firing up an Aleph server on port 3000, and usin
               (om/parser {:read readf :mutate mutatef})
               {:db (new-database-connection)}))])
  {:port 3000})
-Here I'm pretending there's some new-database-connection function that you've provided to create a database connection. The point is, you can put anything you like here, to query any data you might want to supply to your Om Next apps. Yes, Om Next works great with Datomic, but the truth is you can easily integrate any type of data source.
+``` 
+
+Here I'm pretending there's some `new-database-connection` function that you've provided to create a database connection. The point is, you can put anything you like here, to query any data you might want to supply to your Om Next apps. Yes, Om Next works great with Datomic, but the truth is you can easily integrate any type of data source.
 
 Surprisingly, this is all the code we need to write for the Om Next Remote.
 
-Serving the application files
+##Serving the application files
 
-To avoid cross-origin issues you might want to serve you HTML and generated JavaScript files with yada too. Your bidi routes may then look something like this:
+To avoid cross-origin issues you might want to serve you HTML and generated JavaScript files with **yada** too. Your bidi routes may then look something like this:
 
+```
 (require '[clojure.java.io :as io])
 
 (def routes
@@ -291,45 +313,54 @@ To avoid cross-origin issues you might want to serve you HTML and generated Java
     [
       ["app" (yada (io/file "target"))]
       ["props" (yada (om-next-query-resource …))]]])
-With this ease of integration, and for numerous other advantages not covered here, it does feel like Om Next and yada are a great fit for each other. (Disclosure: I'm the author of yada)
+```
 
-Mutations
+With this ease of integration, and for numerous other advantages not covered here, it does feel like Om Next and **yada** are a great fit for each other. (Disclosure: I'm the author of **yada**)
+
+##Mutations
 
 Once everyone had a working multi-tier system we added the ability to 'like' items in the web-app. This would produce transactions that were recorded by Om Next. Each transaction is given a unique UUID.
 
 We fired up our browser repls and used these UUIDs to travel through time to various states of our application.
 
-core.async on the front-end
+##core.async on the front-end
 
 core.async remains a useful library in Om Next, it just isn't necessary for state management. There are still other roles it can play however. I've certainly enjoying employing core.async for writing interactive diagrams in the past.
 
-It turns out that learning core.async in the browser is much easier, and more fun, than on the back-end. The browser gives more opportunity to add visuals to see what is going on. I've also found on courses that it is easy for a beginner to make a mistake with a go-loop such that it never terminates and a reboot of the JVM is required. If this happens in the browser, the reboot is simply a matter of hitting the refresh button.
+It turns out that learning core.async in the browser is much easier, and more fun, than on the back-end. The browser gives more opportunity to add visuals to see what is going on. I've also found on courses that it is easy for a beginner to make a mistake with a `go-loop` such that it never terminates and a reboot of the JVM is required. If this happens in the browser, the reboot is simply a matter of hitting the refresh button.
 
-Of course, there are some core.async functions (those ending in a double-bang !!) that are only available in a truly multi-threaded environment. However, all the important core.async concepts can be taught in a browser, for me the pros easily outweigh the cons.
+Of course, there are some core.async functions (those ending in a double-bang `!!`) that are only available in a truly multi-threaded environment. However, all the important core.async concepts can be taught in a browser, for me the pros easily outweigh the cons.
 
-We played around with core.async features, introducing timeout, alts!, go and go-loops. Then we moved on to transducers and how they can be applied to channels.
+We played around with core.async features, introducing `timeout`, `alts!`, `go` and `go-loop`-ы. Then we moved on to transducers and how they can be applied to channels.
 
 After that I spoke about the following core.async extras:
 
-mult and tap
-pub and sub
-mixer
-Going back to the server-side code we built some core.async channels in Clojure. Using rand-nth, timeout, a channel, go-loop and a mult we built a simple news-feed that sent news headlines into a channel at regular intervals. We wanted these to appear in the front-end app via Server Sent Events.
+- `mult` and `tap`
+- `pub` and `sub`
+- `mixer`
 
-With SSE we don't want a client to consume the original message, but want to send over a copy of the message to each client. This is where mult comes in. With a mult, we can multiplex messages in a channel to one or more consumers.
+Going back to the server-side code we built some core.async channels in Clojure. Using `rand-nth`, `timeout`, a channel, `go-loop` and a `mult` we built a simple news-feed that sent news headlines into a channel at regular intervals. We wanted these to appear in the front-end app via Server Sent Events.
 
+With SSE we don't want a client to consume the original message, but want to send over a copy of the message to each client. This is where `mult` comes in. With a `mult`, we can multiplex messages in a channel to one or more consumers.
+
+```
 (def mlt (mult ch)]
-Now we're ready to build the Server Sent Event stream. Again, this is something that yada can help us with.
+```
 
-We create a resource that produces the content-type text/event-stream which tells a browser that this is an event stream. We can either provide the response as a function (for more control) or return the mult as a constant and yada will handle the details.
+Now we're ready to build the Server Sent Event stream. Again, this is something that **yada** can help us with.
 
+We create a resource that produces the content-type `text/event-stream` which tells a browser that this is an event stream. We can either provide the response as a function (for more control) or return the `mult` as a constant and **yada** will handle the details.
+
+```
 ["newsfeed" (yada (resource {:methods
                               {:get
                                 {:produces "text/event-stream"
                                  :response mlt}}}))]
-SSE streams can also be used to communicate transactions (state changes) to Om Next clients, called side-loading.
+```
 
-Conclusion
+SSE streams can also be used to communicate transactions (state changes) to Om Next clients, called `side-loading`.
+
+##Conclusion
 
 In my view, having worked on numerous serious Om projects over the past 2 years, there's little or no advantage to knowing Om already. So don't worry if you think you've missed out, you can ignore Om and learn Om Next from scratch just as easily as anyone else.
 
