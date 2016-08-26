@@ -1,6 +1,6 @@
 #How to build an Om Next Remote
 
-Notes from a training course [by Malcolm Sparks](https://juxt.pro/people/malcolmsparks.html)
+Notes from a training course [by Malcolm Sparks](https://juxt.pro/people/malcolmsparks.html).
 
 Last January I taught ClojureScript and Om Next to a team of JavaScript engineers in the beautiful city of Cambridge (England). For me, it was my third training course of 2016 but the first I'd ever given to a purely front-end team. It's a strong reflection of how businesses are using ClojureScript to build increasingly sophisticated front-end interfaces for their customers.
 
@@ -84,32 +84,37 @@ That's basically it, but know this:
 
 This is basically Om Next.
 
-Query Expressions
+##Query Expressions
 
 I found it hard to understand Query Expressions until I realised that they are much like SQL. In the '90s I built systems in a product called 'Oracle Forms' which allowed visual components to embed SQL for the data they represented. Oracle Forms would use that SQL to fetch data from the database for me. Same idea in Om Next, only SQL queries which return tabular result sets and replaced by 'query expressions' returning trees. Tree are a much better fit for the hierarchical nature of browser elements in a user interface. Otherwise, same idea.
 
 Query expressions are a recursive structure of 5 ideas, also found in SQL:
 
-Properties (SELECT name,address)
-Joins (think sub-queries, FROM (SELECT ...))
-Idents (think foreign keys)
-Unions (think UNION)
-Mutations (think INSERT/UPDATE/DELETE)
-Of course, query expressions aren't actually SQL, but there are strong conceptual similarities.
+- Properties (SELECT name,address)
+- Joins (think sub-queries, FROM (SELECT ...))
+- Idents (think foreign keys)
+- Unions (think UNION)
+- Mutations (think INSERT/UPDATE/DELETE)
 
-Remotes
+Of course, query expressions aren't _actually_ SQL, but there are strong conceptual similarities.
 
-You know how I said the read function was called once for each property? Actually it's called twice, or more strictly, once for the local database and once for each remote database. By default, Om Next thinks there's a single remote database called :remote (but you can specify as many as you want)
+##Remotes
 
-A read function indicates the involvement of a remote by including a [remote-key remote-query] entry in the map it returns. For example:
+You know how I said the read function was called once for each property? Actually it's called _twice_, or more strictly, _once for the local database and once for each remote database_. By default, Om Next thinks there's a single remote database called `:remote` (but you can specify as many as you want)
 
+A read function indicates the involvement of a remote by including a `[remote-key remote-query]` entry in the map it returns. For example:
+
+```
 {:value 20
  :remote [:likes]}
+```
+
 A full remote query is a composition of all the queries required by calling the read function for each property. Once the full remote query is ready, a send function is called with 2 arguments:
 
-the query to send to the remote server
-what to do with the result when it comes back (a callback)
-The Butler (Om Next calls him the 'Reconciler')
+- the query to send to the remote server
+- what to do with the result when it comes back (a callback)
+
+##The Butler (Om Next calls him the 'Reconciler')
 
 We continued the 2nd day by discussing the 1990s TV series Jeeves and Wooster.
 
@@ -127,24 +132,26 @@ The Reconciler
 
 The Reconciler's responsibility is to do all the behind-the-scenes activities that make everything else go smoothly. The Reconciler coordinates the following activities:
 
-The parsing your query expressions
-Calling your read functions
-Sending your post
-Merging changes with the app state
-Logging
-Cooking, cleaning and washing your clothes
+- The parsing your query expressions
+- Calling your read functions
+- Sending your post
+- Merging changes with the app state
+- Logging
+- Cooking, cleaning and washing your clothes
+
 With Om Next, therefore, we have an approach to building React front-ends that is even more opinionated than Om. However, we can still do everything we used to do in the original Om, so flexibility is maintained. Opinionated management of state in Clojure has served us well so far, I think it could work out well for us in Om Next too.
 
 A slide
 
-Day 3 - An Om Next application
+##Day 3 - An Om Next application
 
 The final day was where everything came together. All the trainees had working systems at this point. The main learning modules for the last day were:
 
-Building the remote server piece
-Changing the state through transactions (mutations)
-Learning about core.async on the front-end
-Building an Om Next Remote
+- Building the remote server piece
+- Changing the state through transactions (mutations)
+- Learning about core.async on the front-end
+
+##Building an Om Next Remote
 
 For me, the standout feature of Om Next is its automatic synchronization of state with remote services across the web.
 
@@ -164,10 +171,11 @@ Next we should consider the role of a remote service: serving all the data your 
 
 Working hard
 
-Reading the property
+##Reading the property
 
-Read functions are called for each property, for each remote. By convention we dispatch on the property key. For instance, for a property called customers/by-id, we would add the following read method:
+Read functions are called for each property, for each remote. By convention we dispatch on the property key. For instance, for a property called `customers/by-id`, we would add the following read method:
 
+```
 (defmulti read om/dispatch)
 
 (defmethod read :customers/by-id [env k params]
@@ -175,13 +183,15 @@ Read functions are called for each property, for each remote. By convention we d
     (if-let [[_ v] (find st k)]
       {:value v :remote (:ast env)}
       {:value :not-found})))
-The read method ensures the entry exists in the state (the value could still be nil, that's why we use find to distinguish between these cases). This method is idiomatic and you'll see the same implementation in many Om Next resources.
+```
 
-We should always return a map containing a :value entry. But if the property also exists on a remote, we should add an entry mapping the remote to the query we wish to use on it. Here, we use :remote because that's the name of the default remote. The :ast value is the query snippet we'll send to the serve.
+The read method ensures the entry exists in the state (the value could still be nil, that's why we use `find` to distinguish between these cases). This method is idiomatic and you'll see the same implementation in many Om Next resources.
 
-Sending the request
+We should always return a map containing a `:value` entry. But if the property also exists on a remote, we should add an entry mapping the remote to the query we wish to use on it. Here, we use `:remote` because that's the name of the default remote. The `:ast` value is the query snippet we'll send to the serve.
 
-Once Jeeves the Reconciler gets the hint that the property also exists on a remote it calls the send function you've provided him it.
+##Sending the request
+
+Once ~~Jeeves~~ the Reconciler gets the hint that the property also exists on a remote it calls the send function you've provided him it.
 
 Our send function uses HTTP to send the request to the remote. Here's my implementation, using the native API of modern browsers.
 
