@@ -339,17 +339,17 @@ After that I spoke about the following core.async extras:
 - `pub` and `sub`
 - `mixer`
 
-Going back to the server-side code we built some core.async channels in Clojure. Using `rand-nth`, `timeout`, a channel, `go-loop` and a `mult` we built a simple news-feed that sent news headlines into a channel at regular intervals. We wanted these to appear in the front-end app via Server Sent Events.
+Возвращаясь назад к серверному коду мы строим `core.async` каналы в Clojure. Используя `rand-nth`, `timeout`, channel, `go-loop` и `mult` мы строим простую **?news-feed?** который посылает новостные заголовки в канал с постоянными интервалами. Мы хотим что бы это появлялось в клиентской части через Server Sent Events.
 
-With SSE we don't want a client to consume the original message, but want to send over a copy of the message to each client. This is where `mult` comes in. With a `mult`, we can multiplex messages in a channel to one or more consumers.
+С SSE мы не хотим, что бы клиент получал исходное сообщение, но мы хотим переслать копию сообщения каждому клиенту. Для этого исспользутся `mult`. С `mult` мы можем мультиплицировать сообщение в канал для одного или более потребителей.
 
 ```
 (def mlt (mult ch)]
 ```
 
-Now we're ready to build the Server Sent Event stream. Again, this is something that **yada** can help us with.
+Теперь мы готовы построить **?Server Sent Event?** стрим. Повторюсь, с этим вам может помочь **yada**.
 
-We create a resource that produces the content-type `text/event-stream` which tells a browser that this is an event stream. We can either provide the response as a function (for more control) or return the `mult` as a constant and **yada** will handle the details.
+Мы создаем ресурс который который производит **?content-type?** `text/event-stream` это говорит браузеру, что это event stream. Мы так же представить response в виде фенкции (для лучшего контроля) или вернуть `mult` как константа и **yada** позаботиться об остальном.
 
 ```
 ["newsfeed" (yada (resource {:methods
@@ -358,10 +358,10 @@ We create a resource that produces the content-type `text/event-stream` which te
                                  :response mlt}}}))]
 ```
 
-SSE streams can also be used to communicate transactions (state changes) to Om Next clients, called `side-loading`.
+SSE стрим также может быть использован для  **?communicate transactions?** (изменения стостояния) в Om Next клиенте, называется `side-loading`.
 
-##Conclusion
+##Заключение
 
-In my view, having worked on numerous serious Om projects over the past 2 years, there's little or no advantage to knowing Om already. So don't worry if you think you've missed out, you can ignore Om and learn Om Next from scratch just as easily as anyone else.
+С моей точки зрения, имея много серьездных проектом на Om за последние 2 года, преимушества опыта работы с Om не значительны или отсутствуют вообще. Следовательно не волнуйтесь если считаете что что-то будет упущено, вы можете игнорировать Om и выучить Om Next с нуля так же легко как любой другой.
 
-The difficult concept to grasp in Om Next are query expressions. Once you understand those, everything else is straight-forward but there's just a lot of new things to learn and it can feel overwhelming at first. Take your time, persevere, and you'll find Om Next is worth the investment.
+Единственное сложное понятие в Om Next это **?query expressions?**. Как только вы разберетесь с этим все остальное отностельно легко, просто нужно выучить довольно много новых поняти, и сперва это может ошеломить. Не спешите, проявите упорство и вы поймете что Om Next стояло потраченного времени.
